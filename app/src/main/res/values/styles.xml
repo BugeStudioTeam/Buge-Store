@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BugeStore" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#F8F9FC</item>
+        <item name="android:navigationBarColor">#F8F9FC</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:fontFamily">@font/google_sans_flex_regular</item>
+    </style>
+</resources>
