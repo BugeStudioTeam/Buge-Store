@@ -31,7 +31,7 @@
 
 | Feature | Description |
 | --- | --- |
-| **Material Design 3 Expressive UI** | A clean, adaptive interface with dynamic colour, configurable contrast, and system-aware light or dark themes. |
+| **Material Design 3 Expressive** | A clean, adaptive interface with dynamic colour, configurable contrast, and system-aware light or dark themes. |
 | **Application Catalogue** | Browse a remote app catalogue with featured apps, trending entries, categories, and detailed metadata. |
 | **Search and Sorting** | Find apps by name, package, or developer, then sort results by relevance, name, newest release, or size. |
 | **Offline Catalogue Cache** | Continue browsing the last successfully saved catalogue when a refresh is unavailable. |
