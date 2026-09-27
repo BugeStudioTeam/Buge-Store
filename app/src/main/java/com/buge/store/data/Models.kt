@@ -73,6 +73,9 @@ data class UserPreferences(
     val contrastMode: ContrastMode = ContrastMode.STANDARD,
     val reduceMotion: Boolean = false,
     val selectedLanguage: String = "",
+    val autoInstall: Boolean = false,
+    val wifiOnlyDownloads: Boolean = false,
+    val installerPackageName: String = "",
 )
 
 data class AppInstallState(

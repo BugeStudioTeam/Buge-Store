@@ -112,4 +112,16 @@
     <string name="app_by">by %1$s</string>
     <string name="progress">%1$d%%</string>
     <string name="catalogue_error">Couldn’t refresh the catalogue.</string>
+    <string name="download_settings">Downloads</string>
+    <string name="auto_install">Automatic installation</string>
+    <string name="auto_install_summary">Install downloaded APKs automatically once the download completes.</string>
+    <string name="wifi_only_downloads">Wi-Fi only downloads</string>
+    <string name="wifi_only_downloads_summary">Only download APKs while connected to Wi-Fi.</string>
+    <string name="installer_package_name">Installer package name</string>
+    <string name="installer_package_name_summary">Declared as the installer of installed packages, equivalent to install -i. Leave empty to use the default installer.</string>
+    <string name="installer_package_name_hint">com.example.installer</string>
+    <string name="shizuku_permission">Shizuku installation</string>
+    <string name="shizuku_permission_summary">Request Shizuku permission to install packages without user confirmation.</string>
+    <string name="grant">Grant</string>
+    <string name="installer_invalid">Enter a valid package name or leave the field empty.</string>
 </resources>

@@ -8,6 +8,7 @@ import com.buge.store.data.StoreApiFactory
 import com.buge.store.data.StoreDatabase
 import com.buge.store.data.StoreRepository
 import com.buge.store.platform.PackageAndDownloadManager
+import com.buge.store.platform.ShizukuInstallManager
 
 class BugeStoreApplication : Application() {
     val container: AppContainer by lazy {
@@ -20,6 +21,7 @@ class BugeStoreApplication : Application() {
             preferences = PreferencesRepository(this),
             platform = platform,
             downloads = DownloadRepository(platform),
+            shizuku = ShizukuInstallManager(this),
         )
     }
 }
@@ -29,4 +31,5 @@ data class AppContainer(
     val preferences: PreferencesRepository,
     val platform: PackageAndDownloadManager,
     val downloads: DownloadRepository,
+    val shizuku: ShizukuInstallManager,
 )

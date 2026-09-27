@@ -152,6 +152,10 @@ fun BugeStoreApp(
                             onContrastMode = viewModel::setContrastMode,
                             onReduceMotion = viewModel::setReduceMotion,
                             onLanguage = viewModel::setLanguage,
+                            onAutoInstall = viewModel::setAutoInstall,
+                            onWifiOnlyDownloads = viewModel::setWifiOnlyDownloads,
+                            onInstallerPackageName = viewModel::setInstallerPackageName,
+                            onRequestShizukuPermission = viewModel::requestShizukuPermission,
                         )
                     }
                     composable("featured") {

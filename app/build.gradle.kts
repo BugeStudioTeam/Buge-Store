@@ -89,6 +89,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.material)
     implementation(libs.androidx.material3)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")

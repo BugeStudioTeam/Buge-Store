@@ -2,6 +2,7 @@ package com.buge.store.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.pm.PackageManager
 import com.buge.store.data.AppInstallState
 import com.buge.store.data.ColorMode
 import com.buge.store.data.ContrastMode
@@ -14,6 +15,7 @@ import com.buge.store.data.StoreRepository
 import com.buge.store.data.ThemeMode
 import com.buge.store.data.UserPreferences
 import com.buge.store.platform.PackageAndDownloadManager
+import com.buge.store.platform.ShizukuInstallManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import rikka.shizuku.Shizuku
 import java.io.File
 
 class StoreViewModel(
@@ -28,6 +31,7 @@ class StoreViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val platform: PackageAndDownloadManager,
     private val downloadRepository: DownloadRepository,
+    private val shizuku: ShizukuInstallManager,
 ) : ViewModel() {
     private val _state = MutableStateFlow(StoreUiState())
     val state = _state.asStateFlow()
@@ -59,7 +63,33 @@ class StoreViewModel(
             }
         }
         refreshInstallPermission()
+        shizuku.addPermissionListener(shizukuPermissionListener)
         viewModelScope.launch { refresh(force = false) }
+    }
+
+    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
+        if (grantResult == PackageManager.PERMISSION_GRANTED) {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission granted.")) }
+        } else {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission denied.")) }
+        }
+    }
+
+    fun requestShizukuPermission() {
+        if (!shizuku.isAvailable()) {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku is not running on this device.")) }
+            return
+        }
+        if (shizuku.hasPermission()) {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission is already granted.")) }
+            return
+        }
+        shizuku.requestPermission()
+    }
+
+    override fun onCleared() {
+        shizuku.removePermissionListener(shizukuPermissionListener)
+        super.onCleared()
     }
 
     fun refresh(force: Boolean = true) = viewModelScope.launch {
@@ -93,9 +123,19 @@ class StoreViewModel(
             return
         }
         if (downloadRepository.isActive(app.packageName)) return
+        if (!platform.hasNetwork()) {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("No network connection available.")) }
+            return
+        }
+        if (_state.value.preferences.wifiOnlyDownloads && !platform.isOnWifi()) {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Wi-Fi only downloads are enabled. Connect to Wi-Fi to download.")) }
+            return
+        }
         downloadRepository.enqueue(viewModelScope, app) { event ->
             when (event) {
-                is DownloadEvent.Ready -> viewModelScope.launch { requestAutomaticInstall(event.file) }
+                is DownloadEvent.Ready -> if (_state.value.preferences.autoInstall) {
+                    viewModelScope.launch { requestAutomaticInstall(event.file) }
+                }
             }
         }
     }
@@ -109,7 +149,7 @@ class StoreViewModel(
             _events.emit(StoreEvent.Message("The downloaded APK is not available."))
             return@launch
         }
-        if (!platform.requestInstall(File(path))) {
+        if (!requestInstall(File(path))) {
             _events.emit(StoreEvent.RequestInstallPermission)
         }
     }
@@ -129,9 +169,19 @@ class StoreViewModel(
     fun setContrastMode(value: ContrastMode) = viewModelScope.launch { preferencesRepository.setContrastMode(value) }
     fun setReduceMotion(value: Boolean) = viewModelScope.launch { preferencesRepository.setReduceMotion(value) }
     fun setLanguage(value: String) = viewModelScope.launch { preferencesRepository.setLanguage(value); _events.emit(StoreEvent.ApplyLanguage(value)) }
+    fun setAutoInstall(value: Boolean) = viewModelScope.launch { preferencesRepository.setAutoInstall(value) }
+    fun setWifiOnlyDownloads(value: Boolean) = viewModelScope.launch { preferencesRepository.setWifiOnlyDownloads(value) }
+    fun setInstallerPackageName(value: String) = viewModelScope.launch { preferencesRepository.setInstallerPackageName(value) }
+
+    private suspend fun requestInstall(file: File): Boolean {
+        if (shizuku.isAvailable() && shizuku.hasPermission()) {
+            if (shizuku.install(file, _state.value.preferences.installerPackageName)) return true
+        }
+        return platform.requestInstall(file)
+    }
 
     private suspend fun requestAutomaticInstall(file: File) {
-        if (!platform.requestInstall(file)) _events.emit(StoreEvent.RequestInstallPermission)
+        if (!requestInstall(file)) _events.emit(StoreEvent.RequestInstallPermission)
     }
 
     private data class Snapshot(

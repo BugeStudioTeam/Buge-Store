@@ -18,6 +18,9 @@ class PreferencesRepository(private val context: Context) {
         val contrastMode = stringPreferencesKey("contrast_mode")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val language = stringPreferencesKey("language")
+        val autoInstall = booleanPreferencesKey("auto_install")
+        val wifiOnlyDownloads = booleanPreferencesKey("wifi_only_downloads")
+        val installerPackageName = stringPreferencesKey("installer_package_name")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { values ->
@@ -27,6 +30,9 @@ class PreferencesRepository(private val context: Context) {
             contrastMode = values.enum(Keys.contrastMode, ContrastMode.STANDARD),
             reduceMotion = values[Keys.reduceMotion] ?: false,
             selectedLanguage = values[Keys.language] ?: "",
+            autoInstall = values[Keys.autoInstall] ?: false,
+            wifiOnlyDownloads = values[Keys.wifiOnlyDownloads] ?: false,
+            installerPackageName = values[Keys.installerPackageName] ?: "",
         )
     }
 
@@ -35,6 +41,9 @@ class PreferencesRepository(private val context: Context) {
     suspend fun setContrastMode(value: ContrastMode) = context.dataStore.edit { it[Keys.contrastMode] = value.name }
     suspend fun setReduceMotion(value: Boolean) = context.dataStore.edit { it[Keys.reduceMotion] = value }
     suspend fun setLanguage(value: String) = context.dataStore.edit { it[Keys.language] = value }
+    suspend fun setAutoInstall(value: Boolean) = context.dataStore.edit { it[Keys.autoInstall] = value }
+    suspend fun setWifiOnlyDownloads(value: Boolean) = context.dataStore.edit { it[Keys.wifiOnlyDownloads] = value }
+    suspend fun setInstallerPackageName(value: String) = context.dataStore.edit { it[Keys.installerPackageName] = value }
 
     private inline fun <reified T : Enum<T>> Preferences.enum(key: Preferences.Key<String>, fallback: T): T {
         return this[key]?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: fallback

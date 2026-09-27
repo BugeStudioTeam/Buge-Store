@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -149,6 +151,10 @@ fun SettingsScreen(
     onContrastMode: (ContrastMode) -> Unit,
     onReduceMotion: (Boolean) -> Unit,
     onLanguage: (String) -> Unit,
+    onAutoInstall: (Boolean) -> Unit,
+    onWifiOnlyDownloads: (Boolean) -> Unit,
+    onInstallerPackageName: (String) -> Unit,
+    onRequestShizukuPermission: () -> Unit,
 ) {
     var activePicker by remember { mutableStateOf<SettingsPicker?>(null) }
     val themeOptions = listOf(
@@ -231,6 +237,35 @@ fun SettingsScreen(
                         title = stringResource(R.string.language),
                         selectedValue = languageOptions.labelFor(state.preferences.selectedLanguage),
                         onClick = { activePicker = SettingsPicker.LANGUAGE },
+                    )
+                }
+            }
+            item {
+                SettingsGroup(stringResource(R.string.download_settings), Icons.Default.SystemUpdate) {
+                    SettingSwitch(
+                        title = stringResource(R.string.auto_install),
+                        subtitle = stringResource(R.string.auto_install_summary),
+                        checked = state.preferences.autoInstall,
+                        onChange = onAutoInstall,
+                    )
+                    SettingSwitch(
+                        title = stringResource(R.string.wifi_only_downloads),
+                        subtitle = stringResource(R.string.wifi_only_downloads_summary),
+                        checked = state.preferences.wifiOnlyDownloads,
+                        onChange = onWifiOnlyDownloads,
+                    )
+                    SettingText(
+                        title = stringResource(R.string.installer_package_name),
+                        subtitle = stringResource(R.string.installer_package_name_summary),
+                        value = state.preferences.installerPackageName,
+                        placeholder = stringResource(R.string.installer_package_name_hint),
+                        onValueChange = onInstallerPackageName,
+                    )
+                    SettingAction(
+                        title = stringResource(R.string.shizuku_permission),
+                        subtitle = stringResource(R.string.shizuku_permission_summary),
+                        actionLabel = stringResource(R.string.grant),
+                        onAction = onRequestShizukuPermission,
                     )
                 }
             }
@@ -394,5 +429,42 @@ private fun SettingStatic(title: String, subtitle: String) {
     Column {
         Text(title, style = MaterialTheme.typography.titleMedium)
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun SettingText(
+    title: String,
+    subtitle: String,
+    value: String,
+    placeholder: String,
+    onValueChange: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text(placeholder) },
+        )
+    }
+}
+
+@Composable
+private fun SettingAction(
+    title: String,
+    subtitle: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        TextButton(onClick = onAction) { Text(actionLabel) }
     }
 }
