@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
@@ -7,36 +8,6 @@ plugins {
     alias(libs.plugins.ksp)
     kotlin("plugin.serialization") version libs.versions.kotlin.get()
 }
-
-val keystoreProperties = Properties().apply {
-    val propertiesFile = rootProject.file("keystore.properties")
-    if (propertiesFile.isFile) {
-        propertiesFile.inputStream().use(::load)
-    }
-}
-
-val releaseKeystorePath = providers.environmentVariable("BUGE_STORE_KEYSTORE").orNull
-    ?: keystoreProperties.getProperty("storeFile")
-val releaseStorePassword = providers.environmentVariable("BUGE_STORE_STORE_PASSWORD").orNull
-    ?: keystoreProperties.getProperty("storePassword")
-val releaseKeyPassword = providers.environmentVariable("BUGE_STORE_KEY_PASSWORD").orNull
-    ?: keystoreProperties.getProperty("keyPassword")
-val releaseKeyAlias = providers.environmentVariable("BUGE_STORE_KEY_ALIAS").orNull
-    ?: keystoreProperties.getProperty("keyAlias")
-
-val releaseStoreFile = releaseKeystorePath?.let { path ->
-    val moduleRelativeFile = project.file(path)
-    when {
-        moduleRelativeFile.isAbsolute -> moduleRelativeFile
-        rootProject.file(path).isFile -> rootProject.file(path)
-        else -> moduleRelativeFile
-    }
-}
-val hasReleaseSigning = releaseStoreFile?.isFile == true &&
-    !releaseStorePassword.isNullOrBlank() &&
-    !releaseKeyPassword.isNullOrBlank() &&
-    !releaseKeyAlias.isNullOrBlank()
-val releaseBuildRequested = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
 
 android {
     namespace = "com.buge.store"
@@ -53,13 +24,19 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"https://raw.githubusercontent.com/BugeStudioTeam/Buge-Store-API/main/api/v1/\"")
     }
 
+    val keystoreProperties = Properties()
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    }
+
     signingConfigs {
-        create("release") {
-            if (hasReleaseSigning) {
-                storeFile = releaseStoreFile
-                storePassword = releaseStorePassword
-                keyAlias = releaseKeyAlias
-                keyPassword = releaseKeyPassword
+        if (keystoreProperties.containsKey("storePassword")) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile", "keystore.jks"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
             }
         }
     }
@@ -67,14 +44,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            if (hasReleaseSigning) {
+            if (keystoreProperties.containsKey("storePassword")) {
                 signingConfig = signingConfigs.getByName("release")
-            } else if (releaseBuildRequested) {
-                error(
-                    "Release signing is not configured. Set BUGE_STORE_KEYSTORE, " +
-                        "BUGE_STORE_STORE_PASSWORD, BUGE_STORE_KEY_PASSWORD, and BUGE_STORE_KEY_ALIAS, " +
-                        "or provide a valid keystore.properties file."
-                )
             }
         }
     }
