@@ -65,7 +65,7 @@
 
         <receiver
             android:name=".platform.ShizukuInstallReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.buge.store.SHIZUKU_INSTALL_RESULT" />
             </intent-filter>

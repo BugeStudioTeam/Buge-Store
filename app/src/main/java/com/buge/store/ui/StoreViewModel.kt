@@ -22,7 +22,6 @@ import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
 import com.buge.store.platform.BugeStoreInstallEvents
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +48,7 @@ class StoreViewModel(
 
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
+            shizuku.prepare()
             viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission granted.")) }
         } else {
             viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission denied.")) }
@@ -96,6 +96,7 @@ class StoreViewModel(
         }
         refreshInstallPermission()
         shizuku.addPermissionListener(shizukuPermissionListener)
+        shizuku.prepare()
         shizuku.appContext().registerReceiver(installResultReceiver, IntentFilter(BugeStoreInstallEvents.INSTALL_FINISHED))
         viewModelScope.launch { refresh(force = false) }
     }
@@ -107,6 +108,7 @@ class StoreViewModel(
         }
         shizuku.addPermissionListener(shizukuPermissionListener)
         if (shizuku.hasPermission()) {
+            shizuku.prepare()
             viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission is already granted.")) }
             return
         }
@@ -203,16 +205,8 @@ class StoreViewModel(
 
     private suspend fun installApk(packageName: String, file: File) {
         markInstalling(packageName, true)
-        val startedAt = System.currentTimeMillis()
-        try {
-            val requested = withContext(Dispatchers.IO) { requestInstall(file) }
-            if (!requested) _events.emit(StoreEvent.RequestInstallPermission)
-        } finally {
-            val elapsed = System.currentTimeMillis() - startedAt
-            val remaining = MIN_INSTALL_FEEDBACK_MS - elapsed
-            if (remaining > 0) delay(remaining)
-            markInstalling(packageName, false)
-        }
+        val handledByShizuku = withContext(Dispatchers.IO) { requestInstall(file) }
+        if (!handledByShizuku) markInstalling(packageName, false)
     }
 
     private suspend fun requestInstall(file: File): Boolean {
@@ -221,7 +215,9 @@ class StoreViewModel(
             _events.emit(StoreEvent.Message("Shizuku installation failed."))
             return false
         }
-        return platform.requestInstall(file)
+        val requested = platform.requestInstall(file)
+        if (!requested) _events.emit(StoreEvent.RequestInstallPermission)
+        return false
     }
 
     private fun markInstalling(packageName: String, installing: Boolean) {
@@ -231,10 +227,6 @@ class StoreViewModel(
                 else current.installingPackages - packageName,
             )
         }
-    }
-
-    private companion object {
-        const val MIN_INSTALL_FEEDBACK_MS = 1200L
     }
 
     private data class Snapshot(
