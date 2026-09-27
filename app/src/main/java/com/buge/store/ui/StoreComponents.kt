@@ -29,11 +29,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -157,6 +158,7 @@ fun StoreAppCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppActionButton(
     app: StoreAppDto,
@@ -174,7 +176,7 @@ fun AppActionButton(
             state in setOf(DownloadState.QUEUED, DownloadState.RUNNING, DownloadState.PAUSED) && download != null -> {
                 Column(modifier.fillMaxWidth()) {
                     val progress = if (download.totalBytes > 0) download.downloadedBytes.toFloat() / download.totalBytes else 0f
-                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                    LinearWavyProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.downloading))
                         TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
