@@ -116,17 +116,17 @@ class ShizukuInstallManager(private val context: Context) {
         val descriptor = runCatching {
             ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         }.onFailure { InstallLogger.step("manager", "open fd failed: ${it.message}") }.getOrNull() ?: return false
-        InstallLogger.step("manager", "opened fd, invoking AIDL install(size=$size, installer=${installerPackageName?.trim()?.ifBlank { null }})")
+        InstallLogger.step("manager", "opened fd, invoking AIDL installFromFd(size=$size, name=${file.name}, installer=${installerPackageName?.trim()?.ifBlank { null }})")
         val callback = object : IInstallCallback.Stub() {
             override fun onStep(step: String, detail: String) {
                 InstallLogger.step("shell.$step", detail)
             }
         }
         return descriptor.use {
-            runCatching { service.install(it, size, installerPackageName?.trim()?.ifBlank { null }, callback) }
-                .onFailure { error -> InstallLogger.step("manager", "AIDL install threw: ${error.javaClass.simpleName}: ${error.message}") }
+            runCatching { service.installFromFd(it, size, file.name, installerPackageName?.trim()?.ifBlank { null }, callback) }
+                .onFailure { error -> InstallLogger.step("manager", "AIDL installFromFd threw: ${error.javaClass.simpleName}: ${error.message}") }
                 .getOrDefault(false)
-                .also { result -> InstallLogger.step("manager", "AIDL install returned $result") }
+                .also { result -> InstallLogger.step("manager", "AIDL installFromFd returned $result") }
         }
     }
 
