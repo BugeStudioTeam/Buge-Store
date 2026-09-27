@@ -14,7 +14,7 @@ import rikka.shizuku.ShizukuProvider
 class BugeStoreApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        runCatching { ShizukuProvider.enableMultiProcessSupport() }
+        runCatching { ShizukuProvider.enableMultiProcessSupport(true) }
     }
 
     val container: AppContainer by lazy {
