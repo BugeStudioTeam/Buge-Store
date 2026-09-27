@@ -125,4 +125,6 @@
     <string name="shizuku_permission_summary">Request Shizuku permission to install packages without user confirmation.</string>
     <string name="grant">Grant</string>
     <string name="installer_invalid">Enter a valid package name or leave the field empty.</string>
+    <string name="install_log">Install log</string>
+    <string name="view">View</string>
 </resources>

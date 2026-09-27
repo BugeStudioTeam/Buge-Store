@@ -156,6 +156,7 @@ fun SettingsScreen(
     onWifiOnlyDownloads: (Boolean) -> Unit,
     onInstallerPackageName: (String) -> Unit,
     onRequestShizukuPermission: () -> Unit,
+    onViewInstallLog: () -> Unit,
 ) {
     var activePicker by remember { mutableStateOf<SettingsPicker?>(null) }
     val themeOptions = listOf(
@@ -274,6 +275,11 @@ fun SettingsScreen(
                 SettingsGroup(stringResource(R.string.data), Icons.Default.Storage) {
                     SettingStatic(title = stringResource(R.string.last_updated), subtitle = state.lastUpdated.ifBlank { stringResource(R.string.offline_catalogue) })
                     SettingStatic(title = stringResource(R.string.api_source), subtitle = "Buge Store API v1")
+                    SettingsOptionCard(
+                        title = stringResource(R.string.install_log),
+                        selectedValue = stringResource(R.string.view),
+                        onClick = onViewInstallLog,
+                    )
                 }
             }
             item {

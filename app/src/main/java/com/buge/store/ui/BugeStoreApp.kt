@@ -156,6 +156,9 @@ fun BugeStoreApp(
                             onWifiOnlyDownloads = viewModel::setWifiOnlyDownloads,
                             onInstallerPackageName = viewModel::setInstallerPackageName,
                             onRequestShizukuPermission = viewModel::requestShizukuPermission,
+                            onViewInstallLog = {
+                                context.startActivity(InstallLogActivity.intent(context))
+                            },
                         )
                     }
                     composable("featured") {

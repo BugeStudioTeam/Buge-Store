@@ -32,6 +32,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".InstallLogActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".AppDetailActivity"
             android:exported="false" />
 

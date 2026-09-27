@@ -7,6 +7,7 @@ import com.buge.store.data.PreferencesRepository
 import com.buge.store.data.StoreApiFactory
 import com.buge.store.data.StoreDatabase
 import com.buge.store.data.StoreRepository
+import com.buge.store.platform.InstallLogger
 import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
 import rikka.shizuku.ShizukuProvider
@@ -14,6 +15,8 @@ import rikka.shizuku.ShizukuProvider
 class BugeStoreApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        InstallLogger.init(this)
+        InstallLogger.step("app", "Application.onCreate pid=${android.os.Process.myPid()}")
         runCatching { ShizukuProvider.enableMultiProcessSupport(true) }
     }
 

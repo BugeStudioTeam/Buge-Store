@@ -14,6 +14,7 @@ import com.buge.store.data.StoreAppDto
 import com.buge.store.data.StoreRepository
 import com.buge.store.data.ThemeMode
 import com.buge.store.data.UserPreferences
+import com.buge.store.platform.InstallLogger
 import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
 import kotlinx.coroutines.Dispatchers
@@ -181,9 +182,13 @@ class StoreViewModel(
         (shizuku.isAvailable() && shizuku.hasPermission()) || _state.value.preferences.autoInstall
 
     private suspend fun installApk(packageName: String, file: File) {
+        InstallLogger.divider("installApk $packageName")
+        InstallLogger.step("viewmodel", "file=${file.absolutePath} exists=${file.exists()} length=${file.length()}")
+        InstallLogger.step("viewmodel", "shizuku available=${shizuku.isAvailable()} permission=${shizuku.hasPermission()} autoInstall=${_state.value.preferences.autoInstall}")
         markInstalling(packageName, true)
         try {
             val handledByShizuku = withContext(Dispatchers.IO) { requestInstall(file) }
+            InstallLogger.step("viewmodel", "requestInstall returned handledByShizuku=$handledByShizuku")
             if (!handledByShizuku) return
             _state.update { current ->
                 current.copy(installStates = current.apps.associate { app -> app.packageName to platform.installState(app) })
@@ -195,10 +200,13 @@ class StoreViewModel(
 
     private suspend fun requestInstall(file: File): Boolean {
         if (shizuku.isAvailable() && shizuku.hasPermission()) {
+            InstallLogger.step("viewmodel", "routing to Shizuku install")
             if (shizuku.install(file, _state.value.preferences.installerPackageName)) return true
+            InstallLogger.step("viewmodel", "Shizuku install FAILED, emitting message")
             _events.emit(StoreEvent.Message("Shizuku installation failed."))
             return false
         }
+        InstallLogger.step("viewmodel", "routing to fallback installer (shizuku unavailable or no permission)")
         val requested = platform.requestInstall(file)
         if (!requested) _events.emit(StoreEvent.RequestInstallPermission)
         return false

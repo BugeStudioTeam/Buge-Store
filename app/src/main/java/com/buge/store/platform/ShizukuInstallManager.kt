@@ -19,6 +19,7 @@ class ShizukuInstallManager(private val context: Context) {
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            InstallLogger.step("manager", "onServiceConnected: binder=${service != null}")
             val stub = IInstallService.Stub.asInterface(service)
             binder = stub
             pendingBind?.complete(stub)
@@ -26,6 +27,7 @@ class ShizukuInstallManager(private val context: Context) {
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            InstallLogger.step("manager", "onServiceDisconnected")
             binder = null
             pendingBind?.completeExceptionally(IllegalStateException("Shizuku user service disconnected."))
             pendingBind = null
@@ -51,8 +53,10 @@ class ShizukuInstallManager(private val context: Context) {
     }.getOrDefault(false)
 
     fun requestPermission() {
+        InstallLogger.step("manager", "requestPermission: available=${isAvailable()}")
         if (!isAvailable()) return
         runCatching { Shizuku.requestPermission(PERMISSION_REQUEST_CODE) }
+            .onFailure { InstallLogger.step("manager", "requestPermission failed: ${it.message}") }
     }
 
     fun addPermissionListener(listener: Shizuku.OnRequestPermissionResultListener) {
@@ -64,10 +68,18 @@ class ShizukuInstallManager(private val context: Context) {
     }
 
     private fun bindIfNeeded(): CompletableDeferred<IInstallService>? {
-        binder?.let { return CompletableDeferred(it) }
-        if (!hasPermission() || !isAvailable()) return null
+        binder?.let {
+            InstallLogger.step("manager", "bindIfNeeded: reusing existing binder")
+            return CompletableDeferred(it)
+        }
+        if (!hasPermission() || !isAvailable()) {
+            InstallLogger.step("manager", "bindIfNeeded: aborted. available=${isAvailable()} permission=${hasPermission()}")
+            return null
+        }
         val deferred = pendingBind ?: CompletableDeferred<IInstallService>().also { pendingBind = it }
+        InstallLogger.step("manager", "bindIfNeeded: calling Shizuku.bindUserService")
         runCatching { Shizuku.bindUserService(userServiceArgs, connection) }
+            .onFailure { InstallLogger.step("manager", "bindUserService threw: ${it.message}") }
         return deferred
     }
 
@@ -76,23 +88,45 @@ class ShizukuInstallManager(private val context: Context) {
     }
 
     suspend fun install(file: File, installerPackageName: String?): Boolean {
-        if (!file.exists() || file.extension.lowercase() != "apk") return false
-        if (!hasPermission()) return false
+        InstallLogger.divider("Shizuku install: ${file.name}")
+        InstallLogger.step("manager", "file=${file.absolutePath} exists=${file.exists()} ext=${file.extension} length=${file.length()}")
+        if (!file.exists() || file.extension.lowercase() != "apk") {
+            InstallLogger.step("manager", "aborted: file missing or not an apk")
+            return false
+        }
+        if (!hasPermission()) {
+            InstallLogger.step("manager", "aborted: no Shizuku permission")
+            return false
+        }
         val deferred = bindIfNeeded() ?: return false
         val service = try {
             withTimeout(BIND_TIMEOUT_MS) { deferred.await() }
         } catch (_: TimeoutCancellationException) {
+            InstallLogger.step("manager", "aborted: bind timeout after ${BIND_TIMEOUT_MS}ms")
             return false
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            InstallLogger.step("manager", "aborted: bind failed: ${error.message}")
             return false
         }
         val size = file.length()
-        if (size <= 0L) return false
+        if (size <= 0L) {
+            InstallLogger.step("manager", "aborted: file size is zero")
+            return false
+        }
         val descriptor = runCatching {
             ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        }.getOrNull() ?: return false
+        }.onFailure { InstallLogger.step("manager", "open fd failed: ${it.message}") }.getOrNull() ?: return false
+        InstallLogger.step("manager", "opened fd, invoking AIDL install(size=$size, installer=${installerPackageName?.trim()?.ifBlank { null }})")
+        val callback = object : IInstallCallback.Stub() {
+            override fun onStep(step: String, detail: String) {
+                InstallLogger.step("shell.$step", detail)
+            }
+        }
         return descriptor.use {
-            runCatching { service.install(it, size, installerPackageName?.trim()?.ifBlank { null }) }.getOrDefault(false)
+            runCatching { service.install(it, size, installerPackageName?.trim()?.ifBlank { null }, callback) }
+                .onFailure { error -> InstallLogger.step("manager", "AIDL install threw: ${error.javaClass.simpleName}: ${error.message}") }
+                .getOrDefault(false)
+                .also { result -> InstallLogger.step("manager", "AIDL install returned $result") }
         }
     }
 

@@ -56,15 +56,19 @@ class PackageAndDownloadManager(private val context: Context) {
         onProgress: (downloadedBytes: Long, totalBytes: Long) -> Unit,
     ): File = withContext(Dispatchers.IO) {
         val source = Uri.parse(app.downloadUrl)
+        InstallLogger.divider("Download ${app.packageName} v${app.latestVersion}")
+        InstallLogger.step("download", "url=${app.downloadUrl}")
         require(source.scheme == "https") { "Only HTTPS APK download URLs are permitted." }
         val request = Request.Builder().url(source.toString()).get().build()
         val call = client.newCall(request)
         activeCalls[id] = call
         val destination = File(requireNotNull(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)), safeFileName(app))
         val temporary = File(destination.parentFile, "${destination.name}.part")
+        InstallLogger.step("download", "destination=${destination.absolutePath}")
         temporary.delete()
         try {
             call.execute().use { response ->
+                InstallLogger.step("download", "HTTP ${response.code} contentLength=${response.body?.contentLength()}")
                 if (!response.isSuccessful) throw IOException("APK download failed: HTTP ${response.code}")
                 val body = response.body ?: throw IOException("APK download response was empty")
                 val contentLength = body.contentLength()
@@ -85,6 +89,7 @@ class PackageAndDownloadManager(private val context: Context) {
                 }
             }
             if (!temporary.renameTo(destination)) throw IOException("Unable to finalize APK download")
+            InstallLogger.step("download", "completed. name=${destination.name} size=${destination.length()}")
             destination
         } finally {
             activeCalls.remove(id)
@@ -107,13 +112,20 @@ class PackageAndDownloadManager(private val context: Context) {
      * Android still owns the final consent screen; there is no silent installation path.
      */
     fun requestInstall(file: File): Boolean {
-        if (!file.exists() || file.extension.lowercase() != "apk") return false
+        InstallLogger.divider("Fallback install: ${file.name}")
+        InstallLogger.step("fallback", "file=${file.absolutePath} exists=${file.exists()} length=${file.length()}")
+        if (!file.exists() || file.extension.lowercase() != "apk") {
+            InstallLogger.step("fallback", "aborted: missing or not an apk")
+            return false
+        }
         if (!canRequestPackageInstalls()) {
+            InstallLogger.step("fallback", "cannot request package installs, caching pending install")
             pendingInstall = file
             return false
         }
         pendingInstall = null
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        InstallLogger.step("fallback", "uri=$uri, starting ACTION_VIEW")
         val installIntent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -124,6 +136,7 @@ class PackageAndDownloadManager(private val context: Context) {
 
     fun retryPendingInstall(): Boolean {
         val file = pendingInstall ?: return false
+        InstallLogger.step("fallback", "retryPendingInstall for ${file.name}")
         return requestInstall(file)
     }
 
