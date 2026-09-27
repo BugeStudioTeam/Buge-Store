@@ -17,11 +17,20 @@ class ShizukuInstallUserService : IInstallService.Stub() {
         if (size <= 0L) return false
         return runCatching {
             FileInputStream(descriptor.fileDescriptor).use { source ->
-                val command = buildCommand(size, installerPackageName)
-                val process = ProcessBuilder(command).redirectErrorStream(true).start()
-                process.outputStream.use { sink -> source.copyTo(sink) }
-                val output = process.inputStream.bufferedReader().readText()
+                val process = ProcessBuilder(buildCommand(size, installerPackageName))
+                    .redirectErrorStream(true)
+                    .start()
+                val output = StringBuilder()
+                val reader = Thread {
+                    runCatching {
+                        process.inputStream.bufferedReader().forEachLine { line -> output.appendLine(line) }
+                    }
+                }
+                reader.isDaemon = true
+                reader.start()
+                runCatching { process.outputStream.use { sink -> source.copyTo(sink) } }
                 val exitCode = process.waitFor()
+                reader.join(READER_TIMEOUT_MS)
                 exitCode == 0 && !output.contains("Failure")
             }
         }.getOrDefault(false)
@@ -35,5 +44,9 @@ class ShizukuInstallUserService : IInstallService.Stub() {
             command += installer
         }
         return command
+    }
+
+    private companion object {
+        const val READER_TIMEOUT_MS = 30_000L
     }
 }
