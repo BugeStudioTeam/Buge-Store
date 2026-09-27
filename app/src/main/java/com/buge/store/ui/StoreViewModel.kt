@@ -39,6 +39,14 @@ class StoreViewModel(
     private val _events = MutableSharedFlow<StoreEvent>()
     val events = _events.asSharedFlow()
 
+    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
+        if (grantResult == PackageManager.PERMISSION_GRANTED) {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission granted.")) }
+        } else {
+            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission denied.")) }
+        }
+    }
+
     init {
         viewModelScope.launch {
             combine(
@@ -65,14 +73,6 @@ class StoreViewModel(
         refreshInstallPermission()
         shizuku.addPermissionListener(shizukuPermissionListener)
         viewModelScope.launch { refresh(force = false) }
-    }
-
-    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
-        if (grantResult == PackageManager.PERMISSION_GRANTED) {
-            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission granted.")) }
-        } else {
-            viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission denied.")) }
-        }
     }
 
     fun requestShizukuPermission() {
