@@ -2,10 +2,6 @@ package com.buge.store.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import com.buge.store.data.AppInstallState
 import com.buge.store.data.ColorMode
@@ -20,7 +16,6 @@ import com.buge.store.data.ThemeMode
 import com.buge.store.data.UserPreferences
 import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
-import com.buge.store.platform.BugeStoreInstallEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -55,22 +50,6 @@ class StoreViewModel(
         }
     }
 
-    private val installResultReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != BugeStoreInstallEvents.INSTALL_FINISHED) return
-            val message = intent.getStringExtra(BugeStoreInstallEvents.EXTRA_MESSAGE)
-            viewModelScope.launch {
-                _state.update { current ->
-                    current.copy(
-                        installingPackages = emptySet(),
-                        installStates = current.apps.associate { app -> app.packageName to platform.installState(app) },
-                    )
-                }
-                if (message != null) _events.emit(StoreEvent.Message(message))
-            }
-        }
-    }
-
     init {
         viewModelScope.launch {
             combine(
@@ -97,7 +76,6 @@ class StoreViewModel(
         refreshInstallPermission()
         shizuku.addPermissionListener(shizukuPermissionListener)
         shizuku.prepare()
-        shizuku.appContext().registerReceiver(installResultReceiver, IntentFilter(BugeStoreInstallEvents.INSTALL_FINISHED))
         viewModelScope.launch { refresh(force = false) }
     }
 
@@ -117,7 +95,6 @@ class StoreViewModel(
 
     override fun onCleared() {
         shizuku.removePermissionListener(shizukuPermissionListener)
-        runCatching { shizuku.appContext().unregisterReceiver(installResultReceiver) }
         super.onCleared()
     }
 
@@ -205,8 +182,15 @@ class StoreViewModel(
 
     private suspend fun installApk(packageName: String, file: File) {
         markInstalling(packageName, true)
-        val handledByShizuku = withContext(Dispatchers.IO) { requestInstall(file) }
-        if (!handledByShizuku) markInstalling(packageName, false)
+        try {
+            val handledByShizuku = withContext(Dispatchers.IO) { requestInstall(file) }
+            if (!handledByShizuku) return
+            _state.update { current ->
+                current.copy(installStates = current.apps.associate { app -> app.packageName to platform.installState(app) })
+            }
+        } finally {
+            markInstalling(packageName, false)
+        }
     }
 
     private suspend fun requestInstall(file: File): Boolean {

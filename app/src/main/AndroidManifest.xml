@@ -63,14 +63,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <receiver
-            android:name=".platform.ShizukuInstallReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.buge.store.SHIZUKU_INSTALL_RESULT" />
-            </intent-filter>
-        </receiver>
-
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
