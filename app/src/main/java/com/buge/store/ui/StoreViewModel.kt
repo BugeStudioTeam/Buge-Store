@@ -161,7 +161,7 @@ class StoreViewModel(
         downloadRepository.enqueue(viewModelScope, app) { event ->
             when (event) {
                 is DownloadEvent.Ready -> if (shouldAutoInstall()) {
-                    installApk(app.packageName, event.file)
+                    viewModelScope.launch { installApk(app.packageName, event.file) }
                 }
             }
         }
