@@ -302,9 +302,8 @@ private fun SettingsGroup(title: String, icon: androidx.compose.ui.graphics.vect
 @Composable
 private fun SettingsOptionCard(title: String, selectedValue: String, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {

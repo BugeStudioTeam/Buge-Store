@@ -1,7 +1,5 @@
 package com.buge.store.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -115,7 +113,8 @@ fun HomeScreen(
 @Composable
 private fun FeaturedHeroCard(app: StoreAppDto, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.width(310.dp).height(230.dp).clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.width(310.dp).height(230.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
     ) {
@@ -142,7 +141,8 @@ private fun FeaturedHeroCard(app: StoreAppDto, onClick: () -> Unit) {
 @Composable
 private fun TrendingCard(app: StoreAppDto, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.width(180.dp).clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.width(180.dp),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
@@ -201,7 +201,8 @@ fun CategoriesScreen(
 @Composable
 private fun CategoryCard(name: String, count: Int, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().height(148.dp).clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(148.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
