@@ -17,31 +17,76 @@ class ShizukuInstallManager(private val context: Context) {
         private const val SESSION_NAME = "buge-store"
     }
 
-    private val available: Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
-
-    fun isAvailable(): Boolean = available
+    fun isAvailable(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
 
     fun hasPermission(): Boolean = runCatching {
-        available && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        isAvailable() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
     }.getOrDefault(false)
 
     fun shouldShowRequestPermissionRationale(): Boolean = runCatching {
-        available && Shizuku.shouldShowRequestPermissionRationale()
+        isAvailable() && Shizuku.shouldShowRequestPermissionRationale()
     }.getOrDefault(false)
 
     fun requestPermission() {
-        if (!available) return
+        if (!isAvailable()) return
         runCatching { Shizuku.requestPermission(PERMISSION_REQUEST_CODE) }
     }
 
     fun addPermissionListener(listener: Shizuku.OnRequestPermissionResultListener) {
-        if (!available) return
         runCatching { Shizuku.addRequestPermissionResultListener(listener) }
     }
 
     fun removePermissionListener(listener: Shizuku.OnRequestPermissionResultListener) {
         runCatching { Shizuku.removeRequestPermissionResultListener(listener) }
     }
+
+    fun install(file: File, installerPackageName: String?): Boolean {
+        if (!file.exists() || file.extension.lowercase() != "apk") return false
+        if (!hasPermission()) return false
+        return runCatching {
+            val installer = context.packageManager.packageInstaller
+            val sizeBytes = file.length()
+            val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+            params.setSize(sizeBytes)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            }
+            val normalizedInstaller = installerPackageName?.trim().orEmpty().ifBlank { null }
+            if (normalizedInstaller != null) {
+                params.setInstallerPackageName(normalizedInstaller)
+            }
+            val sessionId = installer.createSession(params)
+            installer.openSession(sessionId).use { session ->
+                file.inputStream().use { source ->
+                    session.openWrite(SESSION_NAME, 0, sizeBytes).use { destination ->
+                        source.copyTo(destination)
+                        session.fsync(destination)
+                    }
+                }
+                val intent = Intent(context, ShizukuInstallReceiver::class.java).setAction(ShizukuInstallReceiver.ACTION)
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+                session.commit(pendingIntent.intentSender)
+            }
+            true
+        }.getOrDefault(false)
+    }
+}
+
+class ShizukuInstallReceiver : BroadcastReceiver() {
+    companion object {
+        const val ACTION = "com.buge.store.SHIZUKU_INSTALL_RESULT"
+    }
+
+    override fun onReceive(context: Context?, intent: Intent?) {
+        if (intent == null || intent.action != ACTION) return
+        val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return
+            context?.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+}
 
     fun install(file: File, installerPackageName: String?): Boolean {
         if (!file.exists() || file.extension.lowercase() != "apk") return false

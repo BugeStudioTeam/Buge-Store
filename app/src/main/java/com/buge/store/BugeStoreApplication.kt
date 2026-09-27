@@ -9,8 +9,14 @@ import com.buge.store.data.StoreDatabase
 import com.buge.store.data.StoreRepository
 import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
+import rikka.shizuku.ShizukuProvider
 
 class BugeStoreApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        runCatching { ShizukuProvider.enableMultiProcessSupport() }
+    }
+
     val container: AppContainer by lazy {
         val database = Room.databaseBuilder(this, StoreDatabase::class.java, "buge-store.db")
             .fallbackToDestructiveMigration()

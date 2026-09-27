@@ -80,6 +80,7 @@ class StoreViewModel(
             viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku is not running on this device.")) }
             return
         }
+        shizuku.addPermissionListener(shizukuPermissionListener)
         if (shizuku.hasPermission()) {
             viewModelScope.launch { _events.emit(StoreEvent.Message("Shizuku install permission is already granted.")) }
             return
@@ -176,6 +177,8 @@ class StoreViewModel(
     private suspend fun requestInstall(file: File): Boolean {
         if (shizuku.isAvailable() && shizuku.hasPermission()) {
             if (shizuku.install(file, _state.value.preferences.installerPackageName)) return true
+            _events.emit(StoreEvent.Message("Shizuku installation failed."))
+            return false
         }
         return platform.requestInstall(file)
     }
