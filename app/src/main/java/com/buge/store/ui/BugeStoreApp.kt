@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +34,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.buge.store.InstallLogActivity
 import com.buge.store.R
 import com.buge.store.data.StoreAppDto
 import com.buge.store.ui.theme.BugeStoreTheme
@@ -55,6 +57,7 @@ fun BugeStoreApp(
 ) {
     val state by viewModel.state.collectAsState()
     val navController = rememberNavController()
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var permissionDialogDismissed by rememberSaveable { mutableStateOf(false) }
     val currentEntry by navController.currentBackStackEntryAsState()
