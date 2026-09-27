@@ -19,6 +19,8 @@ class ShizukuInstallManager(private val context: Context) {
 
     fun isAvailable(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
 
+    fun appContext(): Context = context
+
     fun hasPermission(): Boolean = runCatching {
         isAvailable() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
     }.getOrDefault(false)
@@ -73,6 +75,11 @@ class ShizukuInstallManager(private val context: Context) {
     }
 }
 
+object BugeStoreInstallEvents {
+    const val INSTALL_FINISHED = "com.buge.store.INSTALL_FINISHED"
+    const val EXTRA_MESSAGE = "message"
+}
+
 class ShizukuInstallReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION = "com.buge.store.SHIZUKU_INSTALL_RESULT"
@@ -81,9 +88,22 @@ class ShizukuInstallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent == null || intent.action != ACTION) return
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
-        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-            val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return
-            context?.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        when (status) {
+            PackageInstaller.STATUS_SUCCESS -> {
+                context?.sendBroadcast(Intent(BugeStoreInstallEvents.INSTALL_FINISHED).setPackage(context.packageName))
+            }
+            PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return
+                context?.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+            else -> {
+                val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "Shizuku installation failed."
+                context?.sendBroadcast(
+                    Intent(BugeStoreInstallEvents.INSTALL_FINISHED)
+                        .setPackage(context.packageName)
+                        .putExtra(BugeStoreInstallEvents.EXTRA_MESSAGE, message),
+                )
+            }
         }
     }
 }

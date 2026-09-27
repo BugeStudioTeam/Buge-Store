@@ -2,6 +2,10 @@ package com.buge.store.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import com.buge.store.data.AppInstallState
 import com.buge.store.data.ColorMode
@@ -16,6 +20,10 @@ import com.buge.store.data.ThemeMode
 import com.buge.store.data.UserPreferences
 import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
+import com.buge.store.platform.BugeStoreInstallEvents
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -47,6 +55,22 @@ class StoreViewModel(
         }
     }
 
+    private val installResultReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != BugeStoreInstallEvents.INSTALL_FINISHED) return
+            val message = intent.getStringExtra(BugeStoreInstallEvents.EXTRA_MESSAGE)
+            viewModelScope.launch {
+                _state.update { current ->
+                    current.copy(
+                        installingPackages = emptySet(),
+                        installStates = current.apps.associate { app -> app.packageName to platform.installState(app) },
+                    )
+                }
+                if (message != null) _events.emit(StoreEvent.Message(message))
+            }
+        }
+    }
+
     init {
         viewModelScope.launch {
             combine(
@@ -72,6 +96,7 @@ class StoreViewModel(
         }
         refreshInstallPermission()
         shizuku.addPermissionListener(shizukuPermissionListener)
+        shizuku.appContext().registerReceiver(installResultReceiver, IntentFilter(BugeStoreInstallEvents.INSTALL_FINISHED))
         viewModelScope.launch { refresh(force = false) }
     }
 
@@ -90,6 +115,7 @@ class StoreViewModel(
 
     override fun onCleared() {
         shizuku.removePermissionListener(shizukuPermissionListener)
+        runCatching { shizuku.appContext().unregisterReceiver(installResultReceiver) }
         super.onCleared()
     }
 
@@ -134,8 +160,8 @@ class StoreViewModel(
         }
         downloadRepository.enqueue(viewModelScope, app) { event ->
             when (event) {
-                is DownloadEvent.Ready -> if (_state.value.preferences.autoInstall) {
-                    viewModelScope.launch { requestAutomaticInstall(event.file) }
+                is DownloadEvent.Ready -> if (shouldAutoInstall()) {
+                    installApk(app.packageName, event.file)
                 }
             }
         }
@@ -150,14 +176,7 @@ class StoreViewModel(
             _events.emit(StoreEvent.Message("The downloaded APK is not available."))
             return@launch
         }
-        markInstalling(download.packageName, true)
-        try {
-            if (!requestInstall(File(path))) {
-                _events.emit(StoreEvent.RequestInstallPermission)
-            }
-        } finally {
-            markInstalling(download.packageName, false)
-        }
+        installApk(download.packageName, File(path))
     }
 
     fun refreshInstallPermission() {
@@ -179,6 +198,23 @@ class StoreViewModel(
     fun setWifiOnlyDownloads(value: Boolean) = viewModelScope.launch { preferencesRepository.setWifiOnlyDownloads(value) }
     fun setInstallerPackageName(value: String) = viewModelScope.launch { preferencesRepository.setInstallerPackageName(value) }
 
+    private fun shouldAutoInstall(): Boolean =
+        (shizuku.isAvailable() && shizuku.hasPermission()) || _state.value.preferences.autoInstall
+
+    private suspend fun installApk(packageName: String, file: File) {
+        markInstalling(packageName, true)
+        val startedAt = System.currentTimeMillis()
+        try {
+            val requested = withContext(Dispatchers.IO) { requestInstall(file) }
+            if (!requested) _events.emit(StoreEvent.RequestInstallPermission)
+        } finally {
+            val elapsed = System.currentTimeMillis() - startedAt
+            val remaining = MIN_INSTALL_FEEDBACK_MS - elapsed
+            if (remaining > 0) delay(remaining)
+            markInstalling(packageName, false)
+        }
+    }
+
     private suspend fun requestInstall(file: File): Boolean {
         if (shizuku.isAvailable() && shizuku.hasPermission()) {
             if (shizuku.install(file, _state.value.preferences.installerPackageName)) return true
@@ -188,16 +224,6 @@ class StoreViewModel(
         return platform.requestInstall(file)
     }
 
-    private suspend fun requestAutomaticInstall(file: File) {
-        val packageName = _state.value.downloads.firstOrNull { it.localUri == file.path }?.packageName
-        if (packageName != null) markInstalling(packageName, true)
-        try {
-            if (!requestInstall(file)) _events.emit(StoreEvent.RequestInstallPermission)
-        } finally {
-            if (packageName != null) markInstalling(packageName, false)
-        }
-    }
-
     private fun markInstalling(packageName: String, installing: Boolean) {
         _state.update { current ->
             current.copy(
@@ -205,6 +231,10 @@ class StoreViewModel(
                 else current.installingPackages - packageName,
             )
         }
+    }
+
+    private companion object {
+        const val MIN_INSTALL_FEEDBACK_MS = 1200L
     }
 
     private data class Snapshot(
