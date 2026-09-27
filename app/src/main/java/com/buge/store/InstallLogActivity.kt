@@ -44,7 +44,7 @@ class InstallLogActivity : ComponentActivity() {
     }
 
     private fun shareLog() {
-        val file = File(File(filesDir, "logs"), "buge-store-install.log")
+        val file = File(File(cacheDir, "logs"), "buge-store-install.log")
         if (!file.exists()) {
             Toast.makeText(this, "No log file yet.", Toast.LENGTH_SHORT).show()
             return
@@ -86,7 +86,7 @@ private fun InstallLogScreen(onBack: () -> Unit, onShare: () -> Unit) {
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Text(
-                text = "File: files/logs/buge-store-install.log",
+                text = "File: cache/logs/buge-store-install.log",
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )

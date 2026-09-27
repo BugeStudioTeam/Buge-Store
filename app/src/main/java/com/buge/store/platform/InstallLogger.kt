@@ -27,7 +27,7 @@ object InstallLogger {
 
     fun init(context: Context) {
         if (logFile != null) return
-        val directory = File(context.filesDir, "logs")
+        val directory = File(context.cacheDir, "logs")
         if (!directory.exists()) directory.mkdirs()
         logFile = File(directory, FILE_NAME)
         append("logger", "Log session started. file=${logFile?.absolutePath}")
@@ -54,6 +54,14 @@ object InstallLogger {
         _entries.value = emptyList()
         val file = logFile
         executor.execute { runCatching { file?.writeText("") } }
+    }
+
+    fun purge() {
+        _entries.value = emptyList()
+        val file = logFile
+        executor.execute {
+            runCatching { if (file != null && file.exists()) file.delete() }
+        }
     }
 
     private fun append(section: String, message: String) {

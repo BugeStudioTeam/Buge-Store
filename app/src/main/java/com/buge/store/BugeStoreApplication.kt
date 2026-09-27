@@ -1,6 +1,8 @@
 package com.buge.store
 
+import android.app.Activity
 import android.app.Application
+import android.os.Bundle
 import androidx.room.Room
 import com.buge.store.data.DownloadRepository
 import com.buge.store.data.PreferencesRepository
@@ -17,6 +19,23 @@ class BugeStoreApplication : Application() {
         super.onCreate()
         InstallLogger.init(this)
         InstallLogger.step("app", "Application.onCreate pid=${android.os.Process.myPid()}")
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            private var resumedCount = 0
+            override fun onActivityResumed(activity: Activity) {
+                resumedCount += 1
+            }
+
+            override fun onActivityPaused(activity: Activity) {
+                resumedCount -= 1
+                if (resumedCount <= 0) InstallLogger.purge()
+            }
+
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+            override fun onActivityStarted(activity: Activity) = Unit
+            override fun onActivityStopped(activity: Activity) = Unit
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+            override fun onActivityDestroyed(activity: Activity) = Unit
+        })
         runCatching { ShizukuProvider.enableMultiProcessSupport(true) }
     }
 
