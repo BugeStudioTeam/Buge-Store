@@ -37,7 +37,7 @@ class CategoryAppsActivity : ComponentActivity() {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return StoreViewModel(container.repository, container.preferences, container.platform) as T
+                return StoreViewModel(container.repository, container.preferences, container.platform, container.downloads) as T
             }
         }
     }

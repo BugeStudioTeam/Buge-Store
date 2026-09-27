@@ -2,6 +2,7 @@ package com.buge.store
 
 import android.app.Application
 import androidx.room.Room
+import com.buge.store.data.DownloadRepository
 import com.buge.store.data.PreferencesRepository
 import com.buge.store.data.StoreApiFactory
 import com.buge.store.data.StoreDatabase
@@ -13,10 +14,12 @@ class BugeStoreApplication : Application() {
         val database = Room.databaseBuilder(this, StoreDatabase::class.java, "buge-store.db")
             .fallbackToDestructiveMigration()
             .build()
+        val platform = PackageAndDownloadManager(this)
         AppContainer(
             repository = StoreRepository(StoreApiFactory.create(), database),
             preferences = PreferencesRepository(this),
-            platform = PackageAndDownloadManager(this),
+            platform = platform,
+            downloads = DownloadRepository(platform),
         )
     }
 }
@@ -25,4 +28,5 @@ data class AppContainer(
     val repository: StoreRepository,
     val preferences: PreferencesRepository,
     val platform: PackageAndDownloadManager,
+    val downloads: DownloadRepository,
 )

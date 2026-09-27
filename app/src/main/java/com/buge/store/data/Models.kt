@@ -84,6 +84,8 @@ data class AppInstallState(
 
 enum class DownloadState { QUEUED, RUNNING, PAUSED, SUCCESSFUL, FAILED, CANCELLED, UNKNOWN }
 
+fun DownloadState.isActive(): Boolean = this == DownloadState.QUEUED || this == DownloadState.RUNNING || this == DownloadState.PAUSED
+
 data class DownloadInfo(
     val id: Long,
     val packageName: String,

@@ -5,16 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.buge.store.data.AppInstallState
 import com.buge.store.data.ColorMode
 import com.buge.store.data.ContrastMode
+import com.buge.store.data.DownloadEvent
 import com.buge.store.data.DownloadInfo
-import com.buge.store.data.DownloadState
+import com.buge.store.data.DownloadRepository
 import com.buge.store.data.PreferencesRepository
 import com.buge.store.data.StoreAppDto
 import com.buge.store.data.StoreRepository
 import com.buge.store.data.ThemeMode
 import com.buge.store.data.UserPreferences
 import com.buge.store.platform.PackageAndDownloadManager
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -23,23 +22,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 
 class StoreViewModel(
     private val repository: StoreRepository,
     private val preferencesRepository: PreferencesRepository,
     private val platform: PackageAndDownloadManager,
+    private val downloadRepository: DownloadRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(StoreUiState())
     val state = _state.asStateFlow()
 
     private val _events = MutableSharedFlow<StoreEvent>()
     val events = _events.asSharedFlow()
-
-    private val activeDownloads = MutableStateFlow<Map<Long, DownloadInfo>>(emptyMap())
-    private val downloadJobs = ConcurrentHashMap<Long, Job>()
-    private val downloadIds = AtomicLong(System.currentTimeMillis())
 
     init {
         viewModelScope.launch {
@@ -60,7 +54,7 @@ class StoreViewModel(
                 }
         }
         viewModelScope.launch {
-            activeDownloads.collect { downloads ->
+            downloadRepository.downloads.collect { downloads ->
                 _state.update { it.copy(downloads = downloads.values.sortedByDescending { item -> item.id }) }
             }
         }
@@ -98,31 +92,16 @@ class StoreViewModel(
             viewModelScope.launch { _events.emit(StoreEvent.Message("This app is not compatible with this device.")) }
             return
         }
-        val id = downloadIds.incrementAndGet()
-        updateDownload(DownloadInfo(id, app.packageName, app.name, app.latestVersion, DownloadState.QUEUED, 0L, 0L))
-        val job = viewModelScope.launch {
-            try {
-                updateDownloadState(id, DownloadState.RUNNING)
-                val file = platform.downloadApk(id, app) { downloaded, total ->
-                    updateDownloadProgress(id, downloaded, total)
-                }
-                updateDownloadState(id, DownloadState.SUCCESSFUL, localUri = file.absolutePath)
-                requestAutomaticInstall(file)
-            } catch (_: CancellationException) {
-                updateDownloadState(id, DownloadState.CANCELLED)
-            } catch (error: Exception) {
-                updateDownloadState(id, DownloadState.FAILED, error = error.message ?: "Unable to download APK")
-            } finally {
-                downloadJobs.remove(id)
+        if (downloadRepository.isActive(app.packageName)) return
+        downloadRepository.enqueue(viewModelScope, app) { event ->
+            when (event) {
+                is DownloadEvent.Ready -> viewModelScope.launch { requestAutomaticInstall(event.file) }
             }
         }
-        downloadJobs[id] = job
     }
 
     fun cancelDownload(download: DownloadInfo) {
-        platform.cancel(download.id)
-        downloadJobs.remove(download.id)?.cancel()
-        updateDownloadState(download.id, DownloadState.CANCELLED)
+        downloadRepository.cancel(download)
     }
 
     fun install(download: DownloadInfo) = viewModelScope.launch {
@@ -153,16 +132,6 @@ class StoreViewModel(
 
     private suspend fun requestAutomaticInstall(file: File) {
         if (!platform.requestInstall(file)) _events.emit(StoreEvent.RequestInstallPermission)
-    }
-
-    private fun updateDownload(item: DownloadInfo) = activeDownloads.update { it + (item.id to item) }
-
-    private fun updateDownloadProgress(id: Long, downloaded: Long, total: Long) = activeDownloads.update { downloads ->
-        downloads[id]?.let { current -> downloads + (id to current.copy(state = DownloadState.RUNNING, downloadedBytes = downloaded, totalBytes = total)) } ?: downloads
-    }
-
-    private fun updateDownloadState(id: Long, state: DownloadState, localUri: String? = null, error: String? = null) = activeDownloads.update { downloads ->
-        downloads[id]?.let { current -> downloads + (id to current.copy(state = state, localUri = localUri ?: current.localUri, error = error)) } ?: downloads
     }
 
     private data class Snapshot(
