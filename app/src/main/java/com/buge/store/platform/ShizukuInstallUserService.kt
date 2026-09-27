@@ -9,7 +9,7 @@ import android.os.Build
 import android.os.RemoteException
 import java.io.File
 
-class ShizukuInstallUserService : IInstallService.Stub {
+class ShizukuInstallUserService : IInstallService.Stub() {
 
     @Throws(RemoteException::class)
     override fun destroy() {
