@@ -104,6 +104,7 @@ fun HomeScreen(
                     onOpen = { onOpen(app.packageName) },
                     onInstall = { state.downloadFor(app.packageName)?.let(onInstall) },
                     onCancelDownload = { state.downloadFor(app.packageName)?.let(onCancelDownload) },
+                    isInstalling = app.packageName in state.installingPackages,
                 )
             }
         }
@@ -241,7 +242,7 @@ fun AppCollectionScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(apps, key = { it.packageName }) { app ->
-                StoreAppCard(app, state.installStates[app.packageName] ?: com.buge.store.data.AppInstallState(), app.packageName in state.favouritePackages, state.downloadFor(app.packageName), { onOpenApp(app) }, { onToggleFavourite(app) }, { onAction(app) }, { onOpen(app.packageName) }, { state.downloadFor(app.packageName)?.let(onInstall) }, { state.downloadFor(app.packageName)?.let(onCancelDownload) })
+                StoreAppCard(app, state.installStates[app.packageName] ?: com.buge.store.data.AppInstallState(), app.packageName in state.favouritePackages, state.downloadFor(app.packageName), { onOpenApp(app) }, { onToggleFavourite(app) }, { onAction(app) }, { onOpen(app.packageName) }, { state.downloadFor(app.packageName)?.let(onInstall) }, { state.downloadFor(app.packageName)?.let(onCancelDownload) }, isInstalling = app.packageName in state.installingPackages)
             }
         }
     }

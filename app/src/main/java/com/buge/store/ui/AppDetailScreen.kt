@@ -109,7 +109,7 @@ fun AppDetailScreen(
                 }
             }
             item {
-                AppActionButton(app, installState, download, { onAction(app) }, { onOpen(app.packageName) }, { download?.let(onInstall) }, { download?.let(onCancelDownload) })
+                AppActionButton(app, installState, download, { onAction(app) }, { onOpen(app.packageName) }, { download?.let(onInstall) }, { download?.let(onCancelDownload) }, isInstalling = app.packageName in state.installingPackages)
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

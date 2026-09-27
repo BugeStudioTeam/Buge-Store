@@ -98,6 +98,7 @@ fun LibraryScreen(
                             onOpen = { onOpen(app.packageName) },
                             onInstall = { state.downloadFor(app.packageName)?.let(onInstall) },
                             onCancelDownload = { state.downloadFor(app.packageName)?.let(onCancelDownload) },
+                            isInstalling = app.packageName in state.installingPackages,
                         )
                     }
                 }

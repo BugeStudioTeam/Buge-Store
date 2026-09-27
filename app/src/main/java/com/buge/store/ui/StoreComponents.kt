@@ -34,6 +34,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -104,6 +105,7 @@ fun StoreAppCard(
     onInstall: () -> Unit,
     onCancelDownload: () -> Unit,
     modifier: Modifier = Modifier,
+    isInstalling: Boolean = false,
 ) {
     Card(
         onClick = onOpenApp,
@@ -153,6 +155,7 @@ fun StoreAppCard(
                 onOpen = onOpen,
                 onInstall = onInstall,
                 onCancel = onCancelDownload,
+                isInstalling = isInstalling,
             )
         }
     }
@@ -169,10 +172,17 @@ fun AppActionButton(
     onInstall: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    isInstalling: Boolean = false,
 ) {
-    AnimatedContent(targetState = download?.state to installState, label = "appAction") { (state, installed) ->
+    AnimatedContent(targetState = Triple(download?.state, installState, isInstalling), label = "appAction") { (state, installed, installing) ->
         when {
             !installed.isCompatible -> OutlinedButton(onClick = {}, enabled = false, modifier = modifier.fillMaxWidth()) { Text(stringResource(R.string.incompatible)) }
+            installing -> {
+                Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(stringResource(R.string.installing), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             state in setOf(DownloadState.QUEUED, DownloadState.RUNNING, DownloadState.PAUSED) && download != null -> {
                 Column(modifier.fillMaxWidth()) {
                     val progress = if (download.totalBytes > 0) download.downloadedBytes.toFloat() / download.totalBytes else 0f

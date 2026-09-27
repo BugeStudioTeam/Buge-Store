@@ -150,8 +150,13 @@ class StoreViewModel(
             _events.emit(StoreEvent.Message("The downloaded APK is not available."))
             return@launch
         }
-        if (!requestInstall(File(path))) {
-            _events.emit(StoreEvent.RequestInstallPermission)
+        markInstalling(download.packageName, true)
+        try {
+            if (!requestInstall(File(path))) {
+                _events.emit(StoreEvent.RequestInstallPermission)
+            }
+        } finally {
+            markInstalling(download.packageName, false)
         }
     }
 
@@ -184,7 +189,22 @@ class StoreViewModel(
     }
 
     private suspend fun requestAutomaticInstall(file: File) {
-        if (!requestInstall(file)) _events.emit(StoreEvent.RequestInstallPermission)
+        val packageName = _state.value.downloads.firstOrNull { it.localUri == file.path }?.packageName
+        if (packageName != null) markInstalling(packageName, true)
+        try {
+            if (!requestInstall(file)) _events.emit(StoreEvent.RequestInstallPermission)
+        } finally {
+            if (packageName != null) markInstalling(packageName, false)
+        }
+    }
+
+    private fun markInstalling(packageName: String, installing: Boolean) {
+        _state.update { current ->
+            current.copy(
+                installingPackages = if (installing) current.installingPackages + packageName
+                else current.installingPackages - packageName,
+            )
+        }
     }
 
     private data class Snapshot(
@@ -210,6 +230,7 @@ data class StoreUiState(
     val refreshError: String? = null,
     val lastUpdated: String = "",
     val requiresInstallPermission: Boolean = false,
+    val installingPackages: Set<String> = emptySet(),
 )
 
 enum class AppSort { RELEVANCE, NAME, NEWEST, SIZE }
