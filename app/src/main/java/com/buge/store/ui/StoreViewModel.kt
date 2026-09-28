@@ -18,6 +18,7 @@ import com.buge.store.platform.InstallLogger
 import com.buge.store.platform.PackageAndDownloadManager
 import com.buge.store.platform.ShizukuInstallManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -190,11 +191,31 @@ class StoreViewModel(
             val handledByShizuku = withContext(Dispatchers.IO) { requestInstall(file) }
             InstallLogger.step("viewmodel", "requestInstall returned handledByShizuku=$handledByShizuku")
             if (!handledByShizuku) return
-            _state.update { current ->
-                current.copy(installStates = current.apps.associate { app -> app.packageName to platform.installState(app) })
-            }
+            refreshInstallStates(packageName)
+            deleteApkQuietly(file)
         } finally {
             markInstalling(packageName, false)
+        }
+    }
+
+    private suspend fun deleteApkQuietly(file: File) {
+        val deleted = withContext(Dispatchers.IO) { runCatching { file.delete() }.getOrDefault(false) }
+        InstallLogger.step("viewmodel", "apk cleanup file=${file.absolutePath} deleted=$deleted")
+    }
+
+    private suspend fun refreshInstallStates(packageName: String) {
+        repeat(INSTALL_STATE_RETRIES) { attempt ->
+            val installed = withContext(Dispatchers.IO) { platform.installStateFor(packageName) }
+            _state.update { current ->
+                val previous = current.installStates[packageName]
+                val merged = installed.copy(
+                    isUpdateAvailable = previous?.isUpdateAvailable ?: installed.isUpdateAvailable,
+                    isCompatible = previous?.isCompatible ?: installed.isCompatible,
+                )
+                current.copy(installStates = current.installStates + (packageName to merged))
+            }
+            if (installed.canOpen) return
+            if (attempt < INSTALL_STATE_RETRIES - 1) delay(INSTALL_STATE_RETRY_DELAY_MS)
         }
     }
 
@@ -226,6 +247,11 @@ class StoreViewModel(
         val favourites: Set<String>,
         val preferences: UserPreferences,
     )
+
+    private companion object {
+        const val INSTALL_STATE_RETRIES = 20
+        const val INSTALL_STATE_RETRY_DELAY_MS = 250L
+    }
 }
 
 data class StoreUiState(

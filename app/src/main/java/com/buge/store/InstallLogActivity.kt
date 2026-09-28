@@ -78,7 +78,7 @@ private fun InstallLogScreen(onBack: () -> Unit, onShare: () -> Unit) {
             TopAppBar(
                 title = { Text("Install log") },
                 actions = {
-                    TextButton(onClick = { InstallLogger.clear() }) { Text("Clear") }
+                    TextButton(onClick = { InstallLogger.purge() }) { Text("Delete") }
                     TextButton(onClick = { onBack() }) { Text("Close") }
                 },
             )

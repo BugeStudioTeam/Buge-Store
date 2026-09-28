@@ -74,9 +74,12 @@ class ShizukuInstallManager(private val context: Context) {
             "manager",
             "copied to $tempPath sizeCheck=${sizeCheck.output.trim()} expected=${file.length()}",
         )
-        if (!copy.success) {
-            InstallLogger.step("manager", "aborted: copy failed: ${copy.error}")
-            return false
+        if (!copy.success || sizeCheck.output.trim() != file.length().toString()) {
+            InstallLogger.step("manager", "copy failed or size mismatch, staging via staging file")
+            if (!stageToReadableLocation(file, tempPath)) {
+                InstallLogger.step("manager", "aborted: staging failed")
+                return false
+            }
         }
 
         val installer = installerPackageName?.trim()?.ifBlank { null }?.takeIf { isInstalledPackage(it) }
@@ -94,6 +97,27 @@ class ShizukuInstallManager(private val context: Context) {
 
         InstallLogger.step("manager", "install result success=${result.success} error=${result.error}")
         return result.success
+    }
+
+    private suspend fun stageToReadableLocation(source: File, tempPath: String): Boolean {
+        val stagingDir = context.getExternalFilesDir(null) ?: return false
+        val stagingFile = File(stagingDir, "${TEMP_PREFIX}${System.currentTimeMillis()}.apk")
+        return try {
+            runCatching { source.inputStream().use { input -> stagingFile.outputStream().use { output -> input.copyTo(output) } } }
+                .getOrElse {
+                    InstallLogger.step("manager", "staging copy failed: ${it.message}")
+                    return false
+                }
+            val stagedCopy = ShizukuShell.exec("cat \"${stagingFile.absolutePath}\" > \"$tempPath\" && chmod 644 \"$tempPath\"")
+            val stagedSize = ShizukuShell.exec("stat -c %s \"$tempPath\"")
+            InstallLogger.step(
+                "manager",
+                "staged copy success=${stagedCopy.success} sizeCheck=${stagedSize.output.trim()} expected=${source.length()}",
+            )
+            stagedCopy.success && stagedSize.output.trim() == source.length().toString()
+        } finally {
+            runCatching { stagingFile.delete() }
+        }
     }
 
     private suspend fun runInstall(tempPath: String, installer: String?): ShizukuShell.Result {

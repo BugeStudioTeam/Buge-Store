@@ -193,9 +193,9 @@ fun AppActionButton(
                     }
                 }
             }
-            state == DownloadState.SUCCESSFUL && download != null -> Button(onClick = onInstall, modifier = modifier.fillMaxWidth()) { Text(stringResource(R.string.install)) }
+            installed.canOpen && !installed.isUpdateAvailable -> FilledTonalButton(onClick = onOpen, modifier = modifier.fillMaxWidth()) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.open)) }
             installed.isUpdateAvailable -> Button(onClick = onAction, modifier = modifier.fillMaxWidth()) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.update)) }
-            installed.canOpen -> FilledTonalButton(onClick = onOpen, modifier = modifier.fillMaxWidth()) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.open)) }
+            state == DownloadState.SUCCESSFUL && download != null -> Button(onClick = onInstall, modifier = modifier.fillMaxWidth()) { Text(stringResource(R.string.install)) }
             else -> Button(onClick = onAction, modifier = modifier.fillMaxWidth()) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.download)) }
         }
     }

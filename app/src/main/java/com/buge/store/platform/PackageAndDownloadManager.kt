@@ -7,7 +7,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.buge.store.data.AppInstallState
@@ -44,6 +43,15 @@ class PackageAndDownloadManager(private val context: Context) {
         )
     }
 
+    fun installStateFor(packageName: String): AppInstallState {
+        val installed = installedVersion(packageName)
+        return AppInstallState(
+            installedVersion = installed,
+            canOpen = installed != null && packageManager.getLaunchIntentForPackage(packageName) != null,
+            isCompatible = true,
+        )
+    }
+
     fun isCompatible(app: StoreAppDto): Boolean {
         val sdkCompatible = Build.VERSION.SDK_INT >= app.minSdk
         val abiCompatible = app.architectures.isEmpty() || Build.SUPPORTED_ABIS.any { it in app.architectures }
@@ -62,7 +70,8 @@ class PackageAndDownloadManager(private val context: Context) {
         val request = Request.Builder().url(source.toString()).get().build()
         val call = client.newCall(request)
         activeCalls[id] = call
-        val destination = File(requireNotNull(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)), safeFileName(app))
+        val directory = File(context.cacheDir, "downloads").apply { if (!exists()) mkdirs() }
+        val destination = File(directory, safeFileName(app))
         val temporary = File(destination.parentFile, "${destination.name}.part")
         InstallLogger.step("download", "destination=${destination.absolutePath}")
         temporary.delete()
