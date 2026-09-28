@@ -17,8 +17,8 @@ android {
         applicationId = "com.buge.store"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 10
+        versionName = "1.6.16"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"https://raw.githubusercontent.com/BugeStudioTeam/Buge-Store-API/main/api/v1/\"")
