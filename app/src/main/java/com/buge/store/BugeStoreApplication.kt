@@ -36,7 +36,7 @@ class BugeStoreApplication : Application() {
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
             override fun onActivityDestroyed(activity: Activity) = Unit
         })
-        runCatching { ShizukuProvider.enableMultiProcessSupport(true) }
+        runCatching { ShizukuProvider.enableMultiProcessSupport(false) }
     }
 
     val container: AppContainer by lazy {
