@@ -1,5 +1,5 @@
 [versions]
-agp = "8.7.3"
+agp = "9.1.0"
 kotlin = "2.0.21"
 composeBom = "2024.12.01"
 activityCompose = "1.10.0"
@@ -43,6 +43,5 @@ shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizu
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
