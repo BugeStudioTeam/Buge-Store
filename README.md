@@ -91,9 +91,9 @@
 
 <a href="https://www.star-history.com/?repos=BugeStudioTeam%2FBuge-Store&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=BugeStudioTeam/Buge-Store&type=date&theme=dark&legend=top-left&sealed_token=rxD5LR299y_hhuTG45yzyV4MHh0PzEyC_EvytXnLsxvWpBo3DwcfBzyNtEtx117a-Kxx5dC8bhOsMPa77Y8O2PlZuZ_L2uq37WsTSOJWRkfyIpyOxkyE-g" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=BugeStudioTeam/Buge-Store&type=date&legend=top-left&sealed_token=rxD5LR299y_hhuTG45yzyV4MHh0PzEyC_EvytXnLsxvWpBo3DwcfBzyNtEtx117a-Kxx5dC8bhOsMPa77Y8O2PlZuZ_L2uq37WsTSOJWRkfyIpyOxkyE-g" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=BugeStudioTeam/Buge-Store&type=date&legend=top-left&sealed_token=rxD5LR299y_hhuTG45yzyV4MHh0PzEyC_EvytXnLsxvWpBo3DwcfBzyNtEtx117a-Kxx5dC8bhOsMPa77Y8O2PlZuZ_L2uq37WsTSOJWRkfyIpyOxkyE-g" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=BugeStudioTeam/Buge-Store&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=BugeStudioTeam/Buge-Store&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=BugeStudioTeam/Buge-Store&type=date&legend=top-left" />
  </picture>
 </a>
 
