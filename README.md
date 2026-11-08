@@ -15,7 +15,7 @@
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 <div style="overflow-x: auto; white-space: nowrap; padding: 10px 0;">
 
@@ -25,9 +25,9 @@
 
 ---
 
-## ✨ Features
+## Features
 
-### 🚀 Core Capabilities
+### Core Capabilities
 
 | Feature | Description |
 | --- | --- |
@@ -36,21 +36,21 @@
 | **Search and Sorting** | Find apps by name, package, or developer, then sort results by relevance, name, newest release, or size. |
 | **Offline Catalogue Cache** | Continue browsing the last successfully saved catalogue when a refresh is unavailable. |
 
-### 📱 App Discovery and Details
+### App Discovery and Details
 
 - Browse featured applications, categories, and the complete catalogue.
 - View app version, package name, developer, file size, minimum SDK, architectures, release date, and publisher fingerprint.
 - Read descriptions and release notes when supplied by the catalogue.
 - Open an app website or source-code link when it is available.
 
-### 📚 Library and Downloads
+### Library and Downloads
 
 - Track available updates for installed applications.
 - View installed apps, favourites, and downloads in one place.
 - Download APK files with visible progress and retry or cancel controls.
 - Request Android's package-install permission only when an APK is ready to install.
 
-### ⚙️ Appearance, Accessibility, and Language
+### Appearance, Accessibility, and Language
 
 - Choose light, dark, or system-default theme behaviour.
 - Select dynamic colour or a Buge Store accent palette.
@@ -58,7 +58,7 @@
 - Reduce motion for more stable screen transitions and carousel behaviour.
 - Select the system default or an app language from English, French, German, Russian, Portuguese, Brazilian Portuguese, Spanish, Simplified Chinese, Traditional Chinese, Arabic, Japanese, and Korean.
 
-### 🛡️ Privacy and Security
+### Privacy and Security
 
 - The catalogue and user preferences are stored locally on the device.
 - Favourites and download history are persisted in the local application database.
@@ -67,7 +67,7 @@
 
 ---
 
-## 📋 Requirements
+## Requirements
 
 | Requirement | Minimum Version |
 | --- | --- |
@@ -76,7 +76,7 @@
 
 ---
 
-## 📦 Installation
+## Installation
 
 [<img src="https://raw.githubusercontent.com/BugeStudioTeam/Buge-Store/refs/heads/main/images/README/Release/get-it-on-github.svg"
     alt="Get it on GitHub"
@@ -87,7 +87,7 @@
 
 ---
 
-## ⭐ Star History
+## Star History
 
 <a href="https://www.star-history.com/?repos=BugeStudioTeam%2FBuge-Store&type=date&legend=top-left">
  <picture>
@@ -99,6 +99,6 @@
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **GNU General Public License v3.0**.
